@@ -31,7 +31,17 @@ API автотесты для Swagger Petstore на Playwright (`APIRequestConte
 
 ---
 
-## Быстрый старт
+## 📚 Documentation
+
+### Manual Test Cases
+
+Подробные ручные тест-кейсы, соответствующие автоматизированным тестам:
+
+👉 **[POST /v2/pet/{petId} — Update Pet (form-data)](docs/test-cases/api_post_pet_update_form_test_cases.md)**
+
+---
+
+## 🚀 Быстрый старт
 
 ### Установка
 
