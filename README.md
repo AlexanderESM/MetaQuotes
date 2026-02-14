@@ -23,3 +23,13 @@ API автотесты для Swagger Petstore на Playwright (`APIRequestConte
 ```bash
 npm i
 npx playwright install
+
+
+## 📚 Documentation
+
+### API Test Cases
+
+- **POST /v2/pet/{petId} — Update Pet (form-data)**  
+  Detailed manual test cases aligned with automated Playwright tests:  
+  [View Test Cases](docs/test-cases/api_post_pet_update_form_test_cases.md)
+
