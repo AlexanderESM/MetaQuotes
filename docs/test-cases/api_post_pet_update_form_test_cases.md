@@ -1,187 +1,333 @@
-Общие допущения для набора
+# POST /v2/pet/{petId} — Update Pet (form-data)
 
-API Base URL: https://petstore.swagger.io
+---
 
-API Prefix: /v2
+# Общие допущения
 
-Метод под тестом: POST /v2/pet/{petId} (application/x-www-form-urlencoded)
+- **API Base URL:** https://petstore.swagger.io
+- **API Prefix:** /v2
+- **Метод под тестом:**  
+  `POST /v2/pet/{petId}`  
+  `Content-Type: application/x-www-form-urlencoded`
+- **Предусловие для позитивных кейсов:**  
+  Питомец создан через `POST /v2/pet`
+- **Постусловие:**  
+  Данные можно не удалять (demo-стенд), но `id` должен быть уникальным.
 
-Предусловие для позитивных кейсов: питомец создан через POST /v2/pet
+---
 
-Постусловие: можно не удалять данные (demo), но ID должен быть уникальный
+## Общая стратегия валидации
 
-Валидация:
-HTTP status
-После update делаем GET /v2/pet/{petId} и проверяем поля
+1. Проверка HTTP status.
+2. После update выполняется `GET /v2/pet/{petId}`.
+3. Проверка обновлённых полей.
+4. (Опционально) Проверка соответствия JSON Schema.
 
+---
 
-Позитивные (High value, stable)
+# Позитивные сценарии (High value, stable)
 
-TC-API-POST-PET-001 — Update name only
-Priority: High
-Type: Functional / Positive / Smoke
-Objective: Убедиться, что обновление name не меняет status.
+---
 
-Preconditions
-1 Создать питомца POST /v2/pet с name=OldName, status=available.
+## TC-API-POST-PET-001 — Update name only
 
-Steps
-1 Отправить POST /v2/pet/{petId} form-data: name=NewName (без status).
-2 Выполнить GET /v2/pet/{petId}.
+- **Priority:** High  
+- **Type:** Functional / Positive / Smoke  
+- **Objective:** Убедиться, что обновление `name` не изменяет `status`.
 
-Expected
-Step 1: HTTP 200 или 204.
-Step 2: HTTP 200, тело:
-id == petId
-name == "NewName"
-status == "available" (не изменился)
+### Preconditions
 
-Notes
-Стабильный smoke-кейс, максимальная бизнес-ценность.
+1. Создать питомца:
+   - `POST /v2/pet`
+   - `name=OldName`
+   - `status=available`
 
+### Steps
 
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: name=NewName
+   ```
+2. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
 
-TC-API-POST-PET-002 — Update status only
-Priority: High
-Type: Functional / Positive / Smoke
-Objective: Убедиться, что обновление status не меняет name.
+### Expected Results
 
-Preconditions
-1 Создать питомца name=Dog, status=available.
+- Update → HTTP 200 или 204
+- GET → HTTP 200
+- Проверить:
+  - `id == petId`
+  - `name == "NewName"`
+  - `status == "available"` (не изменился)
 
-Steps
-1 POST /v2/pet/{petId} form-data: status=sold.
-2 GET /v2/pet/{petId}.
+### Notes
 
-Expected
-Update: 200/204
-GET: 200
-name == "Dog"
-status == "sold"
+Стабильный smoke-кейс с высокой бизнес-ценностью.
 
+---
 
-TC-API-POST-PET-003 — Update name and status
-Priority: Medium
-Type: Functional / Positive / Regression
-Objective: Проверить одновременное обновление двух полей.
+## TC-API-POST-PET-002 — Update status only
 
-Preconditions
-1 Создать питомца name=Dog, status=pending.
+- **Priority:** High  
+- **Type:** Functional / Positive / Smoke  
+- **Objective:** Убедиться, что обновление `status` не изменяет `name`.
 
-Steps
-1 POST /v2/pet/{petId} form-data: name=SuperDog, status=available.
-2 GET /v2/pet/{petId}.
+### Preconditions
 
-Expected
-Update: 200/204
-GET: 200
-name == "SuperDog"
-status == "available"
+1. Создать питомца:
+   - `name=Dog`
+   - `status=available`
 
+### Steps
 
-TC-API-POST-PET-004 — Repeat same update is stable
-Priority: Medium
-Type: Reliability / Regression
-Objective: Повторная отправка одинаковых данных не приводит к “дрейфу” состояния.
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: status=sold
+   ```
+2. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
 
-Preconditions
-1 Создать питомца name=Dog, status=available.
+### Expected Results
 
-Steps
-1 POST /v2/pet/{petId} form-data: name=Same, status=sold.
-2 Повторить Step 1 (тот же payload).
-3 GET /v2/pet/{petId}.
+- Update → HTTP 200 или 204
+- GET → HTTP 200
+- Проверить:
+  - `name == "Dog"`
+  - `status == "sold"`
 
-Expected
-Оба update: 200/204
-GET: 200
-name == "Same"
-status == "sold"
+---
 
-Notes
-Формально это не “идемпотентность по HTTP”, но проверка стабильности результата полезна.
+## TC-API-POST-PET-003 — Update name and status
 
+- **Priority:** Medium  
+- **Type:** Functional / Regression  
+- **Objective:** Проверить одновременное обновление двух полей.
 
-TC-API-POST-PET-005 — Name supports spaces and special characters
-Priority: Medium
-Type: Functional / Encoding / Regression
-Objective: Проверить корректную обработку urlencoded form-data.
+### Preconditions
 
-Preconditions
-1 Создать питомца name=Dog, status=available.
+1. Создать питомца:
+   - `name=Dog`
+   - `status=pending`
 
-Steps
-1 POST /v2/pet/{petId} form-data: name=Mr Dog & Co.
-2 GET /v2/pet/{petId}.
+### Steps
 
-Expected
-Update: 200/204
-GET: 200
-name == "Mr Dog & Co" (без потерь/замен)
-status == "available"
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: name=SuperDog, status=available
+   ```
+2. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
 
+### Expected Results
 
-Негативные 
-TC-API-POST-PET-006 — Update non-existent petId
-Priority: Medium
-Type: Negative / Error handling
-Objective: Сервер корректно обрабатывает запрос на несуществующий ресурс.
+- Update → HTTP 200 или 204
+- GET → HTTP 200
+- Проверить:
+  - `name == "SuperDog"`
+  - `status == "available"`
 
-Steps
-1 POST /v2/pet/{missingId} form-data: name=NoOne.
+---
 
-Expected 
-HTTP  {400, 404, 405}
+## TC-API-POST-PET-004 — Repeat same update is stable
 
+- **Priority:** Medium  
+- **Type:** Reliability / Regression  
+- **Objective:** Повторная отправка одинаковых данных не приводит к изменению состояния.
 
-TC-API-POST-PET-007 — Invalid status value
-Priority: Low–Medium
-Type: Negative / Validation
-Objective: Проверить, что status валидируется (если валидируется).
+### Preconditions
 
-Preconditions
-1 Создать питомца status=available.
+1. Создать питомца:
+   - `name=Dog`
+   - `status=available`
 
-Steps
-1 POST /v2/pet/{petId} form-data: status=UNKNOWN_STATUS.
-2 (Опционально) GET /v2/pet/{petId} чтобы понять, принялось ли значение.
+### Steps
 
-Expected 
-HTTP {200, 204, 400, 405}
-Если 200/204 — demo принимает произвольную строку → фиксируем это как наблюдение.
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: name=Same, status=sold
+   ```
+2. Повторить шаг 1 (тот же payload).
+3. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
 
+### Expected Results
 
+- Оба update → HTTP 200 или 204
+- GET → HTTP 200
+- Проверить:
+  - `name == "Same"`
+  - `status == "sold"`
 
-TC-API-POST-PET-008 — Empty form payload
-Priority: Low
-Type: Negative / Validation
-Objective: Пустой update не должен ломать ресурс.
+### Notes
 
-Preconditions
-1 Создать питомца.
+Это проверка стабильности результата (не строгая HTTP-идемпотентность).
 
-Steps
-1 POST /v2/pet/{petId} с пустым body (нет name, нет status).
-2 GET /v2/pet/{petId}.
+---
 
-Expected 
-HTTP  {200, 204, 400, 405}
-GET должен вернуть исходные значения
+## TC-API-POST-PET-005 — Name supports spaces and special characters
 
+- **Priority:** Medium  
+- **Type:** Functional / Encoding / Regression  
+- **Objective:** Проверить корректную обработку urlencoded form-data.
 
+### Preconditions
 
-TC-API-POST-PET-009 — Wrong Content-Type: JSON instead of form
-Priority: Medium
-Type: Negative / Protocol / Contract
-Objective: Endpoint для form-data не должен молча принимать JSON (или должен — но тогда это контракт).
+1. Создать питомца:
+   - `name=Dog`
+   - `status=available`
 
-Preconditions
-1 Создать питомца.
+### Steps
 
-Steps
-1 POST /v2/pet/{petId} с Content-Type: application/json, body { "name": "JsonName" }.
-2 (Опционально) GET /v2/pet/{petId}.
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: name=Mr Dog & Co
+   ```
+2. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
 
-Expected 
-HTTP {200, 204, 400, 405, 415}
-Если 200/204, то фиксируем: сервер допускает JSON → лучше уточнить контракт/спеку.
+### Expected Results
+
+- Update → HTTP 200 или 204
+- GET → HTTP 200
+- Проверить:
+  - `name == "Mr Dog & Co"`
+  - `status == "available"`
+
+---
+
+# Негативные сценарии
+
+> В идеале негативные кейсы должны иметь фиксированный код и контракт ошибки.  
+> Swagger Petstore demo может возвращать разные статусы.
+
+---
+
+## TC-API-POST-PET-006 — Update non-existent petId
+
+- **Priority:** Medium  
+- **Type:** Negative / Error Handling  
+- **Objective:** Проверить обработку запроса к несуществующему ресурсу.
+
+### Steps
+
+1. Отправить:
+   ```
+   POST /v2/pet/{missingId}
+   form-data: name=NoOne
+   ```
+
+### Expected Results
+
+- HTTP ∈ {400, 404, 405}
+
+---
+
+## TC-API-POST-PET-007 — Invalid status value
+
+- **Priority:** Low–Medium  
+- **Type:** Negative / Validation  
+- **Objective:** Проверить валидацию поля `status`.
+
+### Preconditions
+
+1. Создать питомца со `status=available`.
+
+### Steps
+
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   form-data: status=UNKNOWN_STATUS
+   ```
+2. (Опционально) выполнить `GET /v2/pet/{petId}`.
+
+### Expected Results
+
+- HTTP ∈ {200, 204, 400, 405}
+
+Если получен 200/204 — зафиксировать, что demo принимает произвольные значения.
+
+---
+
+## TC-API-POST-PET-008 — Empty form payload
+
+- **Priority:** Low  
+- **Type:** Negative / Validation  
+- **Objective:** Пустой update не должен ломать ресурс.
+
+### Preconditions
+
+1. Создать питомца.
+
+### Steps
+
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   (пустой body)
+   ```
+2. Выполнить:
+   ```
+   GET /v2/pet/{petId}
+   ```
+
+### Expected Results
+
+- HTTP ∈ {200, 204, 400, 405}
+- GET возвращает исходные значения.
+
+---
+
+## TC-API-POST-PET-009 — Wrong Content-Type (JSON instead of form)
+
+- **Priority:** Medium  
+- **Type:** Negative / Protocol / Contract  
+- **Objective:** Endpoint для form-data не должен принимать JSON без явного контракта.
+
+### Preconditions
+
+1. Создать питомца.
+
+### Steps
+
+1. Отправить:
+   ```
+   POST /v2/pet/{petId}
+   Content-Type: application/json
+   ```
+   ```json
+   { "name": "JsonName" }
+   ```
+2. (Опционально) выполнить `GET /v2/pet/{petId}`.
+
+### Expected Results
+
+- HTTP ∈ {200, 204, 400, 405, 415}
+
+Если получен 200/204 — необходимо уточнение API-контракта.
+
+---
+
+# Связь с автотестами
+
+Данные тест-кейсы соответствуют автоматизированным тестам Playwright в:
+
+```
+tests/api/pet.update-form.spec.ts
+```
+
